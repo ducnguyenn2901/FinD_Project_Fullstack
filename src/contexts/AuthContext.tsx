@@ -1,39 +1,98 @@
-import { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import api from '../lib/api'
 
-const AuthContext = createContext(undefined);
+interface AuthContextType {
+  user: { user_id: string; email: string; name?: string } | null
+  session: null
+  loading: boolean
+  signIn: (email: string, password: string, remember?: boolean) => Promise<void>
+  signUp: (email: string, password: string, name: string) => Promise<void>
+  signOut: () => Promise<void>
+  isAuthenticated: boolean
+}
 
-export function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-  const login = (email, password) => {
-    // Mock login
-    setIsAuthenticated(true);
-    setUser({ name: 'Nguyễn Văn A', email });
-  };
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<{ user_id: string; email: string; name?: string } | null>(null)
+  const [session] = useState<null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const register = (name, email, password) => {
-    // Mock register
-    setIsAuthenticated(true);
-    setUser({ name, email });
-  };
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+    const userJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user')
+    if (token && userJson) {
+      try {
+        const u = JSON.parse(userJson)
+        setUser(u)
+      } catch {}
+    }
+    setLoading(false)
+  }, [])
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-  };
+  const signIn = async (email: string, password: string, remember: boolean = false) => {
+    const res = await api.post('/auth/login', {
+      email: email.trim().toLowerCase(),
+      password
+    })
+    const token = res.data.token as string
+    const u = res.data.user as { user_id: string; email: string; name?: string }
+    if (remember) {
+      localStorage.setItem('auth_token', token)
+      localStorage.setItem('auth_user', JSON.stringify(u))
+      sessionStorage.removeItem('auth_token')
+      sessionStorage.removeItem('auth_user')
+    } else {
+      sessionStorage.setItem('auth_token', token)
+      sessionStorage.setItem('auth_user', JSON.stringify(u))
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_user')
+    }
+    setUser(u)
+  }
+
+  const signUp = async (email: string, password: string, name: string) => {
+    const res = await api.post('/auth/register', {
+      email: email.trim().toLowerCase(),
+      password,
+      name
+    })
+    const token = res.data.token as string
+    const u = res.data.user as { user_id: string; email: string; name?: string }
+    localStorage.setItem('auth_token', token)
+    localStorage.setItem('auth_user', JSON.stringify(u))
+    setUser(u)
+  }
+
+  const signOut = async () => {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user')
+    sessionStorage.removeItem('auth_token')
+    sessionStorage.removeItem('auth_user')
+    setUser(null)
+  }
+
+  const value = {
+    user,
+    session,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    isAuthenticated: !!user,
+  }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
-  );
+  )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
+  return context
 }

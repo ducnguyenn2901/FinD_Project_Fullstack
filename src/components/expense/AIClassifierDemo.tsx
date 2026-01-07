@@ -4,12 +4,12 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { classifyTransaction } from '../../utils/aiCategoryClassifier';
+import { classifyTransaction, type ClassificationResult } from '../../utils/aiCategoryClassifier';
 
 export function AIClassifierDemo() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState(-100000);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ClassificationResult | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
   const exampleTransactions = [
@@ -160,7 +160,7 @@ export function AIClassifierDemo() {
               <div>
                 <p className="text-gray-700 mb-2">Các lựa chọn thay thế:</p>
                 <div className="space-y-2">
-                  {result.alternatives.map((alt: any, idx: number) => (
+                  {result.alternatives.map((alt, idx) => (
                     <div
                       key={idx}
                       className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between"

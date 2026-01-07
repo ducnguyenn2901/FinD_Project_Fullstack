@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { classifyTransaction, getSuggestions } from '../../utils/aiCategoryClassifier.ts';
+import { getSuggestions } from '../../utils/aiCategoryClassifier.ts';
 import { Badge } from '../ui/badge';
 
 interface Transaction {
@@ -30,14 +30,12 @@ interface TransactionTableProps {
 export function TransactionTable({ transactions, onUpdateTransaction }: TransactionTableProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [newCategory, setNewCategory] = useState('');
-  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<Array<{ category: string; confidence: number }>>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleOpenDialog = (transaction: any) => {
+  const handleOpenDialog = (transaction: Transaction) => {
     setEditingId(transaction.id);
     setNewCategory(transaction.category);
-    setSelectedTransaction(transaction);
     setIsDialogOpen(true);
     
     // Lấy gợi ý AI
@@ -56,7 +54,7 @@ export function TransactionTable({ transactions, onUpdateTransaction }: Transact
     setIsDialogOpen(false);
     setEditingId(null);
     setAiSuggestions([]);
-    setSelectedTransaction(null);
+    
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -113,7 +111,7 @@ export function TransactionTable({ transactions, onUpdateTransaction }: Transact
                     setIsDialogOpen(false);
                     setEditingId(null);
                     setAiSuggestions([]);
-                    setSelectedTransaction(null);
+                    
                   }
                 }}>
                   <DialogTrigger asChild>

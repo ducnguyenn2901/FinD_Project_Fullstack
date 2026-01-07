@@ -19,7 +19,7 @@ export type Category =
 export interface Transaction {
   description: string;
   amount: number;
-  [key: string]: any; // Cho phép thêm field khác
+  [key: string]: unknown;
 }
 
 export interface ClassificationResult {
@@ -221,7 +221,7 @@ export function classifyBatchTransactions(
   transactions: Transaction[]
 ) {
   return transactions.map(t => {
-    const result = classifyTransaction(t.description, t.amount);
+    const result = classifyTransaction(t.description, 0);
 
     return {
       ...t,

@@ -1,54 +1,119 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { Dashboard } from './pages/Dashboard';
-import { ExpenseDetails } from './pages/ExpenseDetails';
-import { Goals } from './pages/Goals';
-import { Settings } from './pages/Settings';
-import { Layout } from './components/Layout';
+// src/App.tsx
+import React, { Suspense, lazy } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { Toaster } from './components/ui/sonner'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+// Pages
+const Chatbot = lazy(() => import('./pages/Chatbot'))
+const Landing = lazy(() => import('./pages/Landing'))
+const Login = lazy(() => import('./pages/Login'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const Register = lazy(() => import('./pages/Register'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Wallets = lazy(() => import('./pages/Wallets'))
+const Transactions = lazy(() => import('./pages/Transactions'))
+const Subscriptions = lazy(() => import('./pages/Subscriptions'))
+const Investments = lazy(() => import('./pages/Investments'))
+const Goals = lazy(() => import('./pages/Goals'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Pricing = lazy(() => import('./pages/Pricing'))
+const Testimonials = lazy(() => import('./pages/Testimonials'))
+const Demo = lazy(() => import('./pages/Demo'))
+
+// Layouts
+import DashboardLayout from './components/layout/DashboardLayout'
+
+// Import useAuth
+import { useAuth } from './contexts/AuthContext'
+
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, loading } = useAuth()
   
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  if (loading) {
+    return <div>Loading...</div>
   }
   
-  return <>{children}</>;
-}
-
-function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
   
-  return (
-    <Routes>
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} 
-      />
-      <Route 
-        path="/register" 
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} 
-      />
-      
-      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="expense-details" element={<ExpenseDetails />} />
-        <Route path="goals" element={<Goals />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-    </Routes>
-  );
+  return <DashboardLayout>{children}</DashboardLayout>
 }
 
-export default function App() {
+function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </Router>
-  );
+    <ThemeProvider>
+      <Router 
+        future={{
+          v7_relativeSplatPath: true,
+          v7_startTransition: true,
+        }}
+      >
+        <AuthProvider>
+          <Toaster richColors position="top-center" />
+          <Suspense fallback={<div>Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/testimonials" element={<Testimonials />} />
+              <Route path="/demo" element={<Demo />} />
+
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/wallets" element={
+                <ProtectedRoute>
+                  <Wallets />
+                </ProtectedRoute>
+              } />
+              <Route path="/transactions" element={
+                <ProtectedRoute>
+                  <Transactions />
+                </ProtectedRoute>
+              } />
+              <Route path="/subscriptions" element={
+                <ProtectedRoute>
+                  <Subscriptions />
+                </ProtectedRoute>
+              } />
+              <Route path="/investments" element={
+                <ProtectedRoute>
+                  <Investments />
+                </ProtectedRoute>
+              } />
+              <Route path="/goals" element={
+                <ProtectedRoute>
+                  <Goals />
+                </ProtectedRoute>
+              } />
+              <Route path="/chatbot" element={
+                <ProtectedRoute>
+                  <Chatbot />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
+  )
 }
+
+export default App

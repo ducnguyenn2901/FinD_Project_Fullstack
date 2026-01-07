@@ -11,15 +11,13 @@ import {
 } from '../ui/dialog';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
-import { classifyBatchTransactions } from '../../utils/aiCategoryClassifier';
+import { classifyBatchTransactions, type Transaction as ClassifierTransaction } from '../../utils/aiCategoryClassifier';
 
-interface Transaction {
+type Transaction = ClassifierTransaction & {
   id: number;
   date: string;
-  description: string;
   category: string;
-  amount: number;
-}
+};
 
 interface AutoClassifyButtonProps {
   transactions: Transaction[];

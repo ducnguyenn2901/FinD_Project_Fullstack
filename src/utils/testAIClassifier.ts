@@ -2,7 +2,7 @@
  * Test cases for AI Category Classifier (TypeScript version)
  */
 
-import { classifyTransaction, classifyBatchTransactions } from './aiCategoryClassifier.ts';
+import { classifyTransaction } from './aiCategoryClassifier.ts';
 
 interface TestTransaction {
   description: string;
