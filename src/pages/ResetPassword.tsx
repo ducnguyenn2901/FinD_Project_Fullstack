@@ -24,7 +24,9 @@ const ResetPassword = () => {
 
   const checkSession = React.useCallback(async () => {
     const email = searchParams.get('email')
-    if (email) {
+    const token = searchParams.get('token')
+    
+    if (email && token) {
       setIsValidToken(true)
       setError('')
     } else {
@@ -57,7 +59,9 @@ const ResetPassword = () => {
     try {
       console.log('🔐 Updating password...')
       const email = searchParams.get('email') || ''
-      await api.post('/auth/reset-password', { email, password })
+      const token = searchParams.get('token') || ''
+      
+      await api.post('/auth/reset-password', { email, token, password })
 
       console.log('✅ Password updated successfully')
       setSuccess(true)
@@ -73,20 +77,6 @@ const ResetPassword = () => {
       setError(message)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const useDevMode = async () => {
-    if (import.meta.env.DEV) {
-      console.log('🔄 Dev mode: Bypassing token check')
-      
-      localStorage.setItem('dev_auth', JSON.stringify({
-        user: { id: 'dev-user', email: 'dev@example.com' },
-        session: { access_token: 'dev-token' }
-      }))
-      
-      setIsValidToken(true)
-      setError('')
     }
   }
 
@@ -140,16 +130,6 @@ const ResetPassword = () => {
                   </Button>
                 </Link>
               </div>
-              
-              {import.meta.env.DEV && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={useDevMode}
-                >
-                  Dev Mode: Bypass Check
-                </Button>
-              )}
             </CardContent>
           ) : success ? (
             <CardContent className="space-y-4">
@@ -176,14 +156,6 @@ const ResetPassword = () => {
                 {error && (
                   <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
                     {error}
-                  </div>
-                )}
-
-                {import.meta.env.DEV && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md border border-yellow-200 dark:border-yellow-800">
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                      <strong>💡 Development Mode:</strong> Bạn đang truy cập trực tiếp mà không có token.
-                    </p>
                   </div>
                 )}
 
