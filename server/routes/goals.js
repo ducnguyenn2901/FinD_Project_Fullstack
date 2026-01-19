@@ -98,7 +98,11 @@ router.post('/:id/share', auth, async (req, res) => {
   goal.share_enabled = true
   await goal.save()
 
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  let baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  // Remove trailing slash if present
+  if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1)
+  }
   const shareUrl = `${baseUrl}/contribute-goal/${goal.share_token}`
 
   res.json({ ok: true, shareUrl })

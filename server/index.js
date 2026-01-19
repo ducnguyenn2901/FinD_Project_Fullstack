@@ -17,7 +17,10 @@ dotenv.config()
 
 const app = express()
 
-app.use(cors({ origin: true, credentials: true }))
+app.use(cors({ 
+  origin: process.env.FRONTEND_URL || true, 
+  credentials: true 
+}))
 app.use(express.json())
 
 const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL || ''
