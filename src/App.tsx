@@ -22,6 +22,9 @@ const Profile = lazy(() => import('./pages/Profile'))
 const Pricing = lazy(() => import('./pages/Pricing'))
 const Testimonials = lazy(() => import('./pages/Testimonials'))
 const Demo = lazy(() => import('./pages/Demo'))
+const CommunityChat = lazy(() => import('./pages/CommunityChat'))
+const ContributeGoal = lazy(() => import('./pages/ContributeGoal'))
+const Analytics = lazy(() => import('./pages/Analytics'))
 
 // Layouts
 import DashboardLayout from './components/layout/DashboardLayout'
@@ -66,6 +69,8 @@ function App() {
               <Route path="/testimonials" element={<Testimonials />} />
               <Route path="/demo" element={<Demo />} />
 
+              <Route path="/contribute-goal/:token" element={<ContributeGoal />} />
+
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -91,6 +96,11 @@ function App() {
                   <Investments />
                 </ProtectedRoute>
               } />
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <Analytics />
+                </ProtectedRoute>
+              } />
               <Route path="/goals" element={
                 <ProtectedRoute>
                   <Goals />
@@ -99,6 +109,11 @@ function App() {
               <Route path="/chatbot" element={
                 <ProtectedRoute>
                   <Chatbot />
+                </ProtectedRoute>
+              } />
+              <Route path="/community-chat" element={
+                <ProtectedRoute>
+                  <CommunityChat />
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={

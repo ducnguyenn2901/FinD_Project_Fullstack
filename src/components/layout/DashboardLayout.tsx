@@ -53,7 +53,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { title: "Đầu tư", href: "/investments", icon: <TrendingUp className="h-5 w-5" /> },
     { title: "Phân tích", href: "/analytics", icon: <BarChart3 className="h-5 w-5" /> },
     { title: "Mục tiêu tiết kiệm", href: "/goals", icon: <Target className="h-5 w-5" /> },
-    { title: "AI Chatbot", href: "/chatbot", icon: <Sparkles className="h-5 w-5" /> },
+    { title: "Chat cộng đồng", href: "/community-chat", icon: <Sparkles className="h-5 w-5" /> },
   ]
 
   const handleSignOut = async () => {

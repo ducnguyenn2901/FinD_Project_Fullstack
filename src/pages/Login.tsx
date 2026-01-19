@@ -26,7 +26,8 @@ const Login = () => {
 
     try {
       await signIn(email, password, remember)
-      navigate('/dashboard')
+      const from = (location as any).state?.from?.pathname || "/dashboard"
+      navigate(from, { replace: true })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Đăng nhập thất bại'
       setError(message)

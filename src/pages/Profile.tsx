@@ -167,9 +167,9 @@ const Profile = () => {
                         Người dùng
                       </Badge>
                       <Badge variant="outline" className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Tham gia: {formatJoinDate(new Date().toISOString())}
-                      </Badge>
+                <Calendar className="h-3 w-3" />
+                Tham gia: {formatJoinDate(user?.createdAt || new Date().toISOString())}
+              </Badge>
                     </div>
                   </div>
                 </div>

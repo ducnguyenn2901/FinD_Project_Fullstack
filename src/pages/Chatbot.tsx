@@ -37,7 +37,7 @@ const Chatbot = () => {
     ]
   })
   const [input, setInput] = useState('')
-  const [isMinimized, setIsMinimized] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(true)
   const [isTyping, setIsTyping] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 

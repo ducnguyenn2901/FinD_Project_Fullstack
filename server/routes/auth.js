@@ -19,7 +19,7 @@ router.post('/register', async (req, res) => {
     name: name || ''
   })
   const token = jwt.sign({ user_id: user.user_id, email: user.email }, process.env.JWT_SECRET || '', { expiresIn: '7d' })
-  res.json({ token, user: { user_id: user.user_id, email: user.email, name: user.name } })
+  res.json({ token, user: { user_id: user.user_id, email: user.email, name: user.name, createdAt: user.createdAt } })
 })
 
 router.post('/login', async (req, res) => {
@@ -29,7 +29,7 @@ router.post('/login', async (req, res) => {
   const ok = await bcrypt.compare(password, user.password)
   if (!ok) return res.status(401).json({ error: 'Invalid credentials' })
   const token = jwt.sign({ user_id: user.user_id, email: user.email }, process.env.JWT_SECRET || '', { expiresIn: '7d' })
-  res.json({ token, user: { user_id: user.user_id, email: user.email, name: user.name } })
+  res.json({ token, user: { user_id: user.user_id, email: user.email, name: user.name, createdAt: user.createdAt } })
 })
 
 router.post('/forgot-password', async (req, res) => {

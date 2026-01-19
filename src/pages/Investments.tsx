@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Badge } from '../components/ui/badge'
+import { toast } from 'sonner'
 import { Input } from '../components/ui/input'
 import { Textarea } from '../components/ui/textarea'
 import { Label } from '../components/ui/label'
@@ -15,6 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog"
 import {
   Dialog,
   DialogContent,
@@ -47,7 +58,8 @@ import {
   FileText,
   Calculator,
   Target,
-  LineChart
+  LineChart,
+  Trash2
 } from 'lucide-react'
 import { Edit } from 'lucide-react'
 import api from '../lib/api'
@@ -149,6 +161,10 @@ const Investments = () => {
   const [showNews, setShowNews] = useState(false)
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([])
   const [chartDays, setChartDays] = useState<7 | 30 | 90>(30)
+  
+  // Delete Dialog State
+  const [deleteInvOpen, setDeleteInvOpen] = useState(false)
+  const [invToDelete, setInvToDelete] = useState<string | null>(null)
 
   // Form states
   const [invEditOpen, setInvEditOpen] = useState(false)
@@ -195,6 +211,19 @@ const Investments = () => {
     if (s.includes('crypto')) return 'crypto'
     if (s.includes('etf')) return 'etf'
     return 'stock'
+  }
+
+  const handleDeleteInvestment = async () => {
+    if (!invToDelete) return
+    try {
+      await api.delete(`/investments/${invToDelete}`)
+      toast.success('Đã xóa khoản đầu tư thành công')
+      setDeleteInvOpen(false)
+      fetchInvestments()
+    } catch (error) {
+      console.error('Error deleting investment:', error)
+      toast.error('Không thể xóa khoản đầu tư')
+    }
   }
 
   useEffect(() => {
@@ -1146,6 +1175,23 @@ const Investments = () => {
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={deleteInvOpen} onOpenChange={setDeleteInvOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Khoản đầu tư này sẽ bị xóa khỏi danh mục của bạn.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteInvestment} className="bg-red-600 hover:bg-red-700">
+              Xóa đầu tư
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Price Alert Dialog */}
       <Dialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
         <DialogContent>
@@ -1318,6 +1364,18 @@ const Investments = () => {
                               title="Chỉnh sửa"
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                              onClick={() => {
+                                setInvToDelete(investment.id)
+                                setDeleteInvOpen(true)
+                              }}
+                              title="Xóa"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>

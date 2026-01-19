@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import api from '../lib/api'
 
 interface AuthContextType {
-  user: { user_id: string; email: string; name?: string } | null
+  user: { user_id: string; email: string; name?: string; createdAt?: string } | null
   session: null
   loading: boolean
   signIn: (email: string, password: string, remember?: boolean) => Promise<void>
@@ -14,7 +14,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<{ user_id: string; email: string; name?: string } | null>(null)
+  const [user, setUser] = useState<{ user_id: string; email: string; name?: string; createdAt?: string } | null>(null)
   const [session] = useState<null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password
     })
     const token = res.data.token as string
-    const u = res.data.user as { user_id: string; email: string; name?: string }
+    const u = res.data.user as { user_id: string; email: string; name?: string; createdAt?: string }
     if (remember) {
       localStorage.setItem('auth_token', token)
       localStorage.setItem('auth_user', JSON.stringify(u))
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name
     })
     const token = res.data.token as string
-    const u = res.data.user as { user_id: string; email: string; name?: string }
+    const u = res.data.user as { user_id: string; email: string; name?: string; createdAt?: string }
     localStorage.setItem('auth_token', token)
     localStorage.setItem('auth_user', JSON.stringify(u))
     setUser(u)

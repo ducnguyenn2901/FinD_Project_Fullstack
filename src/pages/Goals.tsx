@@ -20,8 +20,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select"
-import { Target, Plus, TrendingUp, Calendar, Gift, Home, Car, Plane, GraduationCap } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog"
+import { Target, Plus, TrendingUp, Calendar, Gift, Home, Car, Plane, GraduationCap, Wallet, Share2, Trash2 } from 'lucide-react'
 import api from '../lib/api'
+import {
+  Dialog as ContributionDialog,
+  DialogContent as ContributionDialogContent,
+  DialogHeader as ContributionDialogHeader,
+  DialogTitle as ContributionDialogTitle,
+  DialogDescription as ContributionDialogDescription,
+  DialogFooter as ContributionDialogFooter
+} from "../components/ui/dialog"
+import {
+  Select as WalletSelect,
+  SelectTrigger as WalletSelectTrigger,
+  SelectValue as WalletSelectValue,
+  SelectContent as WalletSelectContent,
+  SelectItem as WalletSelectItem
+} from "../components/ui/select"
+import { Badge } from '../components/ui/badge'
+import { toast } from 'sonner'
 
 type GoalResponse = {
   _id?: string
@@ -43,6 +70,21 @@ type Goal = {
   category: string
 }
 
+type WalletItem = {
+  id?: string
+  name: string
+  type: string
+}
+
+type ContributionItem = {
+  amount: number
+  contributor_name?: string
+  wallet_name?: string
+  wallet_type?: string
+  note?: string
+  created_at?: string
+}
+
 const Goals = () => {
   const [goals, setGoals] = useState<Goal[]>([])
   const [editOpen, setEditOpen] = useState(false)
@@ -59,6 +101,25 @@ const Goals = () => {
     targetDate: '',
     category: 'other'
   })
+
+  const [wallets, setWallets] = useState<WalletItem[]>([])
+  const [contributionOpen, setContributionOpen] = useState(false)
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
+  const [contributionForm, setContributionForm] = useState({
+    amount: '',
+    walletId: '',
+    note: ''
+  })
+  const [shareLoadingId, setShareLoadingId] = useState<string | null>(null)
+  
+  // Delete Dialog State
+  const [deleteGoalOpen, setDeleteGoalOpen] = useState(false)
+  const [goalToDelete, setGoalToDelete] = useState<string | null>(null)
+
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyItems, setHistoryItems] = useState<ContributionItem[]>([])
+  const [historyGoalName, setHistoryGoalName] = useState('')
 
   const getIconByCategory = (category: string) => {
     const icons: Record<string, JSX.Element> = {
@@ -103,12 +164,23 @@ const Goals = () => {
     }
   }, [])
   
+  const fetchWallets = React.useCallback(async () => {
+    try {
+      const res = await api.get('/wallets')
+      const data = (res.data || []) as Array<WalletItem & { _id: string }>
+      setWallets(data.map(d => ({ id: d._id, name: d.name, type: d.type })))
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
+  
   useEffect(() => {
     const id = setTimeout(() => {
       fetchGoals()
+      fetchWallets()
     }, 0)
     return () => clearTimeout(id)
-  }, [fetchGoals])
+  }, [fetchGoals, fetchWallets])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -130,11 +202,12 @@ const Goals = () => {
 
   const totalTarget = goals.reduce((sum, goal) => sum + goal.targetAmount, 0)
   const totalSaved = goals.reduce((sum, goal) => sum + goal.currentAmount, 0)
-  const overallProgress = (totalSaved / totalTarget) * 100
+  const overallProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0
+  const averageTarget = goals.length > 0 ? totalTarget / goals.length : 0
 
   const handleAddGoal = async () => {
     if (!newGoal.name || !newGoal.targetAmount || !newGoal.targetDate) {
-      alert('Vui lòng điền đầy đủ thông tin')
+      toast.error('Vui lòng điền đầy đủ thông tin mục tiêu')
       return
     }
 
@@ -148,8 +221,10 @@ const Goals = () => {
       await api.post('/goals', payload)
       setNewGoal({ name: '', targetAmount: '', targetDate: '', category: 'other' })
       fetchGoals()
+      toast.success('Tạo mục tiêu tiết kiệm thành công')
     } catch (e) {
       console.error(e)
+      toast.error('Tạo mục tiêu thất bại, vui lòng thử lại')
     }
   }
 
@@ -172,13 +247,98 @@ const Goals = () => {
     }
   }
 
+  const openContributionDialog = (goalId: string) => {
+    setSelectedGoalId(goalId)
+    setContributionForm({ amount: '', walletId: '', note: '' })
+    setContributionOpen(true)
+  }
+
+  const handleContribute = async () => {
+    if (!selectedGoalId) return
+    const amountNumber = parseInt(contributionForm.amount)
+    if (!amountNumber || amountNumber <= 0) {
+      toast.error('Vui lòng nhập số tiền góp hợp lệ')
+      return
+    }
+
+    const wallet = wallets.find(w => w.id === contributionForm.walletId)
+
+    try {
+      await api.post(`/goals/${selectedGoalId}/contributions`, {
+        amount: amountNumber,
+        wallet_name: wallet?.name || '',
+        wallet_type: wallet?.type || '',
+        note: contributionForm.note
+      })
+      setContributionOpen(false)
+      setSelectedGoalId(null)
+      fetchGoals()
+    } catch (e) {
+      console.error(e)
+      toast.error('Góp tiền vào mục tiêu thất bại, vui lòng thử lại')
+    }
+  }
+
+  const handleShareLink = async (goalId: string) => {
+    try {
+      setShareLoadingId(goalId)
+      const res = await api.post<{ ok: boolean; shareUrl: string }>(`/goals/${goalId}/share`)
+      const shareUrl = res.data?.shareUrl
+      if (shareUrl) {
+        try {
+          await navigator.clipboard.writeText(shareUrl)
+          toast.success('Link chia sẻ đã được sao chép vào bộ nhớ tạm')
+        } catch {
+          toast.info(`Link chia sẻ: ${shareUrl}`)
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Tạo link chia sẻ thất bại, vui lòng thử lại')
+    } finally {
+      setShareLoadingId(null)
+    }
+  }
+
+  const handleDeleteGoal = async () => {
+    if (!goalToDelete) return
+    try {
+      await api.delete(`/goals/${goalToDelete}`)
+      toast.success('Đã xóa mục tiêu thành công')
+      setDeleteGoalOpen(false)
+      fetchGoals()
+    } catch (error) {
+      console.error('Error deleting goal:', error)
+      toast.error('Không thể xóa mục tiêu')
+    }
+  }
+
+  const openHistoryDialog = async (goal: Goal) => {
+    const id = goal._id || goal.id
+    if (!id) return
+    setHistoryGoalName(goal.name)
+    setHistoryOpen(true)
+    setHistoryLoading(true)
+    try {
+      const res = await api.get<ContributionItem[]>(`/goals/${id}/contributions`)
+      setHistoryItems(res.data || [])
+    } catch (e) {
+      console.error(e)
+      setHistoryItems([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Mục tiêu Tiết kiệm</h1>
-          <p className="text-muted-foreground">Lập kế hoạch và theo dõi mục tiêu tài chính của bạn</p>
+          <p className="text-muted-foreground">
+            Lập kế hoạch và theo dõi hành trình tiết kiệm cho những mục tiêu quan trọng.
+          </p>
         </div>
         
         <Dialog>
@@ -292,25 +452,91 @@ const Goals = () => {
                 <p className="text-sm text-muted-foreground">Đã hoàn thành</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">
-                  {Math.floor(totalTarget / goals.length)}
-                </p>
-                <p className="text-sm text-muted-foreground">Trung bình/mục tiêu</p>
+                    <p className="text-lg font-bold">
+                      {formatCurrency(averageTarget)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Mục tiêu trung bình</p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Goals Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {goals.map((goal) => {
-          const progress = calculateProgress(goal.currentAmount, goal.targetAmount)
-          const daysLeft = getDaysUntilTarget(goal.targetDate)
-          const monthlySaving = goal.targetAmount / Math.max(1, daysLeft / 30)
-          
-          return (
-            <Card key={goal._id || goal.id} className="hover:shadow-lg transition-shadow">
+      {goals.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center space-y-4">
+            <Target className="h-10 w-10 mx-auto text-muted-foreground" />
+            <div className="space-y-1">
+              <p className="text-lg font-semibold">Chưa có mục tiêu tiết kiệm nào</p>
+              <p className="text-sm text-muted-foreground">
+                Tạo mục tiêu đầu tiên để bắt đầu hành trình tiết kiệm thông minh.
+              </p>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tạo mục tiêu đầu tiên
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Tạo mục tiêu mới</DialogTitle>
+                  <DialogDescription>
+                    Thêm mục tiêu tiết kiệm và bắt đầu lập kế hoạch.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="empty-name">Tên mục tiêu *</Label>
+                    <Input
+                      id="empty-name"
+                      placeholder="VD: Du lịch, Mua nhà..."
+                      value={newGoal.name}
+                      onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="empty-target">Số tiền mục tiêu *</Label>
+                    <Input
+                      id="empty-target"
+                      type="number"
+                      placeholder="0"
+                      value={newGoal.targetAmount}
+                      onChange={(e) => setNewGoal({ ...newGoal, targetAmount: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="empty-date">Ngày hoàn thành mục tiêu *</Label>
+                    <Input
+                      id="empty-date"
+                      type="date"
+                      value={newGoal.targetDate}
+                      onChange={(e) => setNewGoal({ ...newGoal, targetDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleAddGoal}>Tạo mục tiêu</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {goals.map((goal) => {
+            const progress = calculateProgress(goal.currentAmount, goal.targetAmount)
+            const daysLeft = getDaysUntilTarget(goal.targetDate)
+            const monthlySaving = goal.targetAmount / Math.max(1, daysLeft / 30)
+            
+            return (
+            <Card
+              key={goal._id || goal.id}
+              className={`hover:shadow-lg transition-shadow ${
+                progress >= 100 ? 'border-green-300 dark:border-green-500' : ''
+              }`}
+            >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className={`p-3 rounded-full ${goal.color}`}>
@@ -319,10 +545,15 @@ const Goals = () => {
                   <div className="text-right">
                     <div className="text-2xl font-bold">{progress.toFixed(0)}%</div>
                     <div className="text-sm text-muted-foreground">Hoàn thành</div>
+                    {progress >= 100 && (
+                      <Badge className="mt-1" variant="outline">
+                        Đã đạt mục tiêu
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 
-                <h3 className="font-semibold text-lg mb-2">{goal.name}</h3>
+                <h3 className="font-semibold text-lg mb-2 truncate" title={goal.name}>{goal.name}</h3>
                 
                 <div className="space-y-4">
                   <div>
@@ -386,6 +617,46 @@ const Goals = () => {
                     >
                       Sửa
                     </Button>
+                    <Button 
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                      onClick={() => {
+                        setGoalToDelete(String(goal._id || goal.id))
+                        setDeleteGoalOpen(true)
+                      }}
+                      title="Xóa mục tiêu"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => openContributionDialog(String(goal._id || goal.id || ''))}
+                    >
+                      <Wallet className="h-4 w-4 mr-1" />
+                      Góp tiền từ ví
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleShareLink(String(goal._id || goal.id || ''))}
+                      disabled={shareLoadingId === String(goal._id || goal.id || '')}
+                    >
+                      <Share2 className="h-4 w-4 mr-1" />
+                      {shareLoadingId === String(goal._id || goal.id || '') ? 'Đang tạo link...' : 'Chia sẻ link góp'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openHistoryDialog(goal)}
+                    >
+                      Lịch sử góp
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -393,6 +664,7 @@ const Goals = () => {
           )
         })}
       </div>
+      )}
 
       {/* Savings Tips */}
       <Card>
@@ -435,6 +707,24 @@ const Goals = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteGoalOpen} onOpenChange={setDeleteGoalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Mục tiêu này và toàn bộ lịch sử đóng góp sẽ bị xóa vĩnh viễn.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteGoal} className="bg-red-600 hover:bg-red-700">
+              Xóa mục tiêu
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -491,6 +781,123 @@ const Goals = () => {
               Lưu thay đổi
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ContributionDialog open={contributionOpen} onOpenChange={setContributionOpen}>
+        <ContributionDialogContent className="sm:max-w-[425px]">
+          <ContributionDialogHeader>
+            <ContributionDialogTitle>Góp tiền vào mục tiêu</ContributionDialogTitle>
+            <ContributionDialogDescription>
+              Chọn ví và số tiền bạn muốn góp vào mục tiêu này.
+            </ContributionDialogDescription>
+          </ContributionDialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Chọn ví</Label>
+              <WalletSelect
+                value={contributionForm.walletId}
+                onValueChange={(value) => setContributionForm({ ...contributionForm, walletId: value })}
+              >
+                <WalletSelectTrigger>
+                  <WalletSelectValue placeholder="Chọn ví nguồn" />
+                </WalletSelectTrigger>
+                <WalletSelectContent>
+                  {wallets.length === 0 ? (
+                    <WalletSelectItem value="__none" disabled>
+                      Chưa có ví nào, hãy tạo ví trước
+                    </WalletSelectItem>
+                  ) : (
+                    wallets.map((w) => (
+                      <WalletSelectItem key={w.id} value={w.id || ''}>
+                        {w.name}
+                      </WalletSelectItem>
+                    ))
+                  )}
+                </WalletSelectContent>
+              </WalletSelect>
+            </div>
+            <div className="grid gap-2">
+              <Label>Số tiền góp</Label>
+              <Input
+                type="number"
+                value={contributionForm.amount}
+                onChange={(e) => setContributionForm({ ...contributionForm, amount: e.target.value })}
+                placeholder="Nhập số tiền (VND)"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Ghi chú (tuỳ chọn)</Label>
+              <Input
+                value={contributionForm.note}
+                onChange={(e) => setContributionForm({ ...contributionForm, note: e.target.value })}
+                placeholder="Ví dụ: Góp từ ví MOMO"
+              />
+            </div>
+          </div>
+          <ContributionDialogFooter>
+            <Button onClick={handleContribute}>
+              Xác nhận góp tiền
+            </Button>
+          </ContributionDialogFooter>
+        </ContributionDialogContent>
+      </ContributionDialog>
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Lịch sử góp tiền</DialogTitle>
+            <DialogDescription>
+              Các lần góp tiền vào mục tiêu {historyGoalName}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 max-h-80 overflow-y-auto">
+            {historyLoading ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                Đang tải lịch sử góp tiền...
+              </div>
+            ) : historyItems.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                Chưa có lần góp tiền nào cho mục tiêu này.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {historyItems.map((item, index) => {
+                  const date = item.created_at ? new Date(item.created_at) : null
+                  const source =
+                    item.wallet_type === 'external'
+                      ? 'Góp công khai'
+                      : item.wallet_name
+                      ? `Từ ví ${item.wallet_name}`
+                      : 'Khác'
+                  const name = item.contributor_name && item.contributor_name.trim()
+                    ? item.contributor_name
+                    : 'Không tên'
+                  return (
+                    <div
+                      key={`${item.created_at || ''}-${index}`}
+                      className="flex justify-between items-start rounded-md border bg-card px-3 py-2 text-sm"
+                    >
+                      <div className="space-y-1">
+                        <div className="font-medium">
+                          {formatCurrency(item.amount)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {source} • Người góp: {name}
+                        </div>
+                        {item.note && item.note.trim() && (
+                          <div className="text-xs text-muted-foreground">
+                            Lời nhắn: {item.note}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        {date ? date.toLocaleString('vi-VN') : ''}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

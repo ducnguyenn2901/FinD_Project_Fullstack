@@ -7,7 +7,22 @@ const SavingsGoalSchema = new mongoose.Schema(
     target_amount: { type: Number, required: true },
     current_amount: { type: Number, default: 0 },
     deadline: { type: String, default: null },
-    created_at: { type: Date, default: Date.now }
+    created_at: { type: Date, default: Date.now },
+    share_token: { type: String, default: null, index: true },
+    share_enabled: { type: Boolean, default: false },
+    contributions: {
+      type: [
+        {
+          amount: { type: Number, required: true },
+          contributor_name: { type: String, default: '' },
+          wallet_name: { type: String, default: '' },
+          wallet_type: { type: String, default: '' },
+          created_at: { type: Date, default: Date.now },
+          note: { type: String, default: '' }
+        }
+      ],
+      default: []
+    }
   },
   { timestamps: true }
 )

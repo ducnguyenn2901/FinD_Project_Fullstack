@@ -10,6 +10,7 @@ import subscriptionsRoutes from './routes/subscriptions.js'
 import walletsRoutes from './routes/wallets.js'
 import investmentsRoutes from './routes/investments.js'
 import marketRoutes from './routes/market.js'
+import chatRoutes from './routes/chat.js'
 
 dotenv.config({ path: '.env.local' })
 dotenv.config()
@@ -56,6 +57,7 @@ async function start() {
   app.use('/wallets', walletsRoutes)
   app.use('/investments', investmentsRoutes)
   app.use('/market', marketRoutes)
+  app.use('/chat', chatRoutes)
 
   app.listen(port, () => {
     console.log(`Backend running at http://localhost:${port}`)
