@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { randomUUID } from 'crypto'
 import SavingsGoal from '../models/SavingsGoal.js'
+import Wallet from '../models/Wallet.js'
+import User from '../models/User.js'
 import auth from '../middleware/auth.js'
 
 const router = Router()

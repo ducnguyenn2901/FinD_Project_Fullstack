@@ -9,6 +9,14 @@ import { Badge } from '../components/ui/badge'
 import { Separator } from '../components/ui/separator'
 import { Switch } from '../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog"
 import { 
   User, 
   Mail, 
@@ -26,6 +34,8 @@ import {
   Settings
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../lib/api'
+import { toast } from 'sonner'
 
 const Profile = () => {
   const { user } = useAuth()
@@ -52,7 +62,53 @@ const Profile = () => {
     }
   })
 
-  
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [passwordError, setPasswordError] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+
+  const handleChangePassword = async () => {
+    setPasswordError('')
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError('Vui lòng nhập đầy đủ thông tin')
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('Mật khẩu mới không khớp')
+      return
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự')
+      return
+    }
+
+    try {
+      setIsChangingPassword(true)
+      await api.post('/auth/change-password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      })
+      
+      toast.success('Đổi mật khẩu thành công')
+      setIsChangePasswordOpen(false)
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+    } catch (e: any) {
+      const msg = e.response?.data?.error || 'Đổi mật khẩu thất bại'
+      setPasswordError(msg)
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
 
   const handleSave = () => {
     setIsEditing(false)
@@ -505,7 +561,7 @@ const Profile = () => {
                   <History className="mr-2 h-4 w-4" />
                   Xem lịch sử hoạt động
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => setIsChangePasswordOpen(true)}>
                   <Shield className="mr-2 h-4 w-4" />
                   Đổi mật khẩu
                 </Button>
@@ -547,6 +603,57 @@ const Profile = () => {
             </Card>
           </div>
         </div>
+
+        <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Đổi mật khẩu</DialogTitle>
+            <DialogDescription>
+              Nhập mật khẩu hiện tại và mật khẩu mới để thay đổi.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {passwordError && (
+              <div className="text-sm text-red-500 bg-red-50 p-2 rounded">
+                {passwordError}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Mật khẩu mới</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsChangePasswordOpen(false)}>Hủy</Button>
+            <Button onClick={handleChangePassword} disabled={isChangingPassword}>
+              {isChangingPassword ? 'Đang xử lý...' : 'Lưu thay đổi'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
   )
 }

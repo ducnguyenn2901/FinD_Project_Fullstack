@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -17,6 +17,7 @@ const Login = () => {
   const [remember, setRemember] = useState(false)
 
   const navigate = useNavigate()
+  const location = useLocation()
   const { signIn } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,7 +27,7 @@ const Login = () => {
 
     try {
       await signIn(email, password, remember)
-      const from = (location as any).state?.from?.pathname || "/dashboard"
+      const from = (location.state as any)?.from?.pathname || "/dashboard"
       navigate(from, { replace: true })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Đăng nhập thất bại'

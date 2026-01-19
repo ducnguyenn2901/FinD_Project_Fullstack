@@ -46,6 +46,8 @@ const ContributeGoal = () => {
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [selectedWalletId, setSelectedWalletId] = useState('')
 
+  const selectedWallet = wallets.find(w => w._id === selectedWalletId)
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -111,7 +113,6 @@ const ContributeGoal = () => {
       return
     }
 
-    const selectedWallet = wallets.find(w => w._id === selectedWalletId)
     if (selectedWallet && selectedWallet.balance < numericAmount) {
       setError('Số dư ví không đủ')
       return
@@ -289,6 +290,11 @@ const ContributeGoal = () => {
                         disabled={submitting}
                         required
                       />
+                      {selectedWallet && amount && Number(amount) > selectedWallet.balance && (
+                         <p className="text-xs text-red-500 font-medium">
+                           Số tiền vượt quá số dư ví ({formatCurrency(selectedWallet.balance)})
+                         </p>
+                      )}
                     </div>
                     
                     <div className="space-y-2">
@@ -305,7 +311,7 @@ const ContributeGoal = () => {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={submitting || !goal || !selectedWalletId}
+                      disabled={submitting || !goal || !selectedWalletId || (!!selectedWallet && Number(amount) > selectedWallet.balance)}
                     >
                       {submitting ? 'Đang xử lý...' : 'Góp tiền ngay'}
                     </Button>

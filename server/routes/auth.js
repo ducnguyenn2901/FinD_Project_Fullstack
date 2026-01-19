@@ -4,7 +4,29 @@ import jwt from 'jsonwebtoken'
 import { randomUUID } from 'crypto'
 import User from '../models/User.js'
 
+import auth from '../middleware/auth.js'
+
+// Auth routes
 const router = Router()
+
+router.post('/change-password', auth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Vui lòng nhập đầy đủ thông tin' })
+  }
+
+  const user = await User.findOne({ user_id: req.user_id })
+  if (!user) return res.status(404).json({ error: 'User not found' })
+
+  const ok = await bcrypt.compare(currentPassword, user.password)
+  if (!ok) return res.status(400).json({ error: 'Mật khẩu hiện tại không đúng' })
+
+  const hash = await bcrypt.hash(newPassword, 10)
+  user.password = hash
+  await user.save()
+
+  res.json({ ok: true, message: 'Đổi mật khẩu thành công' })
+})
 
 router.post('/register', async (req, res) => {
   const { email, password, name } = req.body
