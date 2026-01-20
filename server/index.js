@@ -17,8 +17,16 @@ dotenv.config()
 
 const app = express()
 
+// Handle CORS: allow both with and without trailing slash
+const getOrigin = () => {
+  const url = process.env.FRONTEND_URL
+  if (!url) return true
+  // Remove trailing slash if present to match browser Origin header
+  return url.endsWith('/') ? url.slice(0, -1) : url
+}
+
 app.use(cors({ 
-  origin: process.env.FRONTEND_URL || true, 
+  origin: getOrigin(), 
   credentials: true 
 }))
 app.use(express.json())
